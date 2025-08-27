@@ -1,15 +1,30 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+// Tipe data untuk pesan
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+  image?: string;
+};
+
+// Tipe data untuk history
+type History = {
+  id: number;
+  title: string;
+  messages: Message[];
+};
+
 export default function Home() {
-  const [messages, setMessages] = useState<{ role: string; content: string; image?: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarClosing, setSidebarClosing] = useState(false);
-  const [histories, setHistories] = useState<any[]>([]);
+  const [histories, setHistories] = useState<History[]>([]);
   const [activeHistory, setActiveHistory] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -29,7 +44,7 @@ export default function Home() {
     const question = prompt || input;
     if (!question.trim() && !selectedImage) return;
 
-    const newMessages = [
+    const newMessages: Message[] = [
       ...messages,
       { role: "user", content: question || "(Gambar dikirim)", image: selectedImage || undefined },
     ];
@@ -37,7 +52,7 @@ export default function Home() {
     setLoading(true);
 
     try {
-      let res;
+      let res: Response;
 
       if (selectedImage) {
         const formData = new FormData();
@@ -63,7 +78,7 @@ export default function Home() {
 
       const data = await res.json();
 
-      let reply =
+      let reply: string =
         data.text ||
         data.output?.[0]?.content?.[0]?.text ||
         data.candidates?.[0]?.content?.parts?.[0]?.text ||
@@ -75,9 +90,12 @@ export default function Home() {
 
       // Update atau buat history baru
       setHistories((prev) => {
-        let updated = [...prev];
+        const updated = [...prev];
         if (activeHistory !== null) {
-          updated[activeHistory].messages = [...newMessages, { role: "assistant", content: reply }];
+          updated[activeHistory].messages = [
+            ...newMessages,
+            { role: "assistant", content: reply },
+          ];
         } else {
           updated.push({
             id: Date.now(),
@@ -106,13 +124,13 @@ export default function Home() {
     try {
       const res = await fetch("/api/berita");
       const data = await res.json();
-      const newsText = data.result || data.data?.text || "Tidak ada berita hari ini.";
+      const newsText: string = data.result || data.data?.text || "Tidak ada berita hari ini.";
 
-      const newMessages = [...messages, { role: "assistant", content: newsText }];
+      const newMessages: Message[] = [...messages, { role: "assistant", content: newsText }];
       setMessages(newMessages);
 
       setHistories((prev) => {
-        let updated = [...prev];
+        const updated = [...prev];
         if (activeHistory !== null) {
           updated[activeHistory].messages = newMessages;
         } else {
@@ -153,7 +171,7 @@ export default function Home() {
   };
 
   // Efek mengetik balasan
-  const typeMessage = (fullText: string, currentMessages: any[]) => {
+  const typeMessage = (fullText: string, currentMessages: Message[]) => {
     let index = 0;
     let displayed = "";
     const interval = setInterval(() => {
@@ -172,7 +190,7 @@ export default function Home() {
     alert("✅ Teks berhasil disalin!");
   };
 
-  const quickQuestions = [
+  const quickQuestions: string[] = [
     "💡 Berikan ide usaha kecil untuk anak muda",
     "📖 Ringkas artikel panjang jadi poin-poin",
     "⚽ Siapa pemain bola terbaik saat ini?",

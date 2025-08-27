@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 
+interface GeminiResponse {
+  candidates?: {
+    content?: {
+      parts?: { text?: string }[];
+    };
+  }[];
+}
+
 export async function GET() {
   try {
     const prompt = `
@@ -8,8 +16,7 @@ export async function GET() {
     `;
 
     const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
-        process.env.GEMINI_API_KEY,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -19,12 +26,21 @@ export async function GET() {
       }
     );
 
-    const data = await res.json();
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: "Gagal mengambil berita dari Gemini API" },
+        { status: res.status }
+      );
+    }
+
+    const data: GeminiResponse = await res.json();
     const text =
       data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada berita.";
 
     return NextResponse.json({ result: text });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Terjadi kesalahan server";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
